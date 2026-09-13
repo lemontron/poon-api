@@ -13,5 +13,6 @@ Package.onUse(api => {
 	api.use('meteor');
 	api.use('modules');
 	api.use('webapp');
+	api.use('accounts-base');
 	api.mainModule('server.js', 'server');
 });
