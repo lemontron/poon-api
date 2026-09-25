@@ -4,7 +4,7 @@ import express from 'express';
 
 const WebSocket = Npm.require(`${__meteor_bootstrap__.serverDir}/npm/node_modules/meteor/ddp-server/node_modules/faye-websocket`);
 
-export const websocket = (path, handler, {sameOrigin = false, ...options} = {}) => {
+export const websocket = (path, handler, {sameOrigin = false, authorize, ...options} = {}) => {
 	WebApp.httpServer.on('upgrade', async (req, socket, head) => {
 		const url = new URL(req.url, 'http://localhost');
 		if (url.pathname !== path) return;
@@ -20,6 +20,8 @@ export const websocket = (path, handler, {sameOrigin = false, ...options} = {}) 
 				'services.resume.loginTokens.hashedToken': Accounts._hashLoginToken(token),
 			}) : undefined;
 			if (socket.destroyed) return;
+			if (authorize && !await authorize(url.searchParams, user, req)) return socket.destroy();
+			if (socket.destroyed) return;
 
 			const peer = new WebSocket(req, socket, head, null, options);
 			peer.onerror = () => peer.close();
@@ -30,7 +32,15 @@ export const websocket = (path, handler, {sameOrigin = false, ...options} = {}) 
 			if (peer.readyState !== 1) return;
 			await handler(peer, url.searchParams, user, req);
 		} catch (error) {
-			console.error(`[WebSocket ${path}]`, error);
+			if (error instanceof Meteor.Error && error.error === 'peer') console.warn(`[WebSocket ${path}] ${error.reason}`, {
+				'id': url.searchParams.get('id'),
+				'networkId': url.searchParams.get('networkId'),
+				'origin': req.headers.origin,
+				'userAgent': req.headers['user-agent'],
+				'forwardedFor': req.headers['x-forwarded-for'],
+				'remoteAddress': req.socket.remoteAddress,
+			});
+			else console.error(`[WebSocket ${path}]`, error);
 			socket.destroy();
 		}
 	});
