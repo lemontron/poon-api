@@ -20,7 +20,15 @@ export const websocket = (path, handler, {sameOrigin = false, authorize, ...opti
 				'services.resume.loginTokens.hashedToken': Accounts._hashLoginToken(token),
 			}) : undefined;
 			if (socket.destroyed) return;
-			if (authorize && !await authorize(url.searchParams, user, req)) return socket.destroy();
+			if (authorize) {
+				try {
+					const ok = await authorize(url.searchParams, user, req);
+					if (!ok) return socket.destroy();
+				} catch (err) {
+					console.warn(err);
+					return socket.destroy();
+				}
+			}
 			if (socket.destroyed) return;
 
 			const peer = new WebSocket(req, socket, head, null, options);
