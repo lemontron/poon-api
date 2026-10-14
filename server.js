@@ -42,7 +42,7 @@ export const websocket = (path, handler, {sameOrigin = false, authorize, ...opti
 		} catch (error) {
 			if (error instanceof Meteor.Error && error.error === 'peer') console.warn(`[WebSocket ${path}] ${error.reason}`, {
 				'id': url.searchParams.get('id'),
-				'networkId': url.searchParams.get('networkId'),
+				'storeId': url.searchParams.get('storeId'),
 				'origin': req.headers.origin,
 				'userAgent': req.headers['user-agent'],
 				'forwardedFor': req.headers['x-forwarded-for'],
